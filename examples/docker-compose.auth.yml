@@ -1,0 +1,20 @@
+# ntfy with access control: deny-by-default, token auth. After first boot, mint
+# users/tokens with `docker exec ntfy ntfy user add ...` and register the topic
+# token in orca via `ntfy.create --token <tok>`.
+services:
+  ntfy:
+    image: binwiederhier/ntfy:latest
+    container_name: ntfy
+    command: serve
+    restart: unless-stopped
+    environment:
+      - NTFY_BASE_URL=https://ntfy.example.com
+      - NTFY_CACHE_FILE=/var/cache/ntfy/cache.db
+      - NTFY_AUTH_FILE=/var/cache/ntfy/auth.db
+      - NTFY_AUTH_DEFAULT_ACCESS=deny-all
+      - NTFY_BEHIND_PROXY=true
+    ports:
+      - "80:80"
+    volumes:
+      - ./state/etc:/etc/ntfy
+      - ./state/cache:/var/cache/ntfy

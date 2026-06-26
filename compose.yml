@@ -1,0 +1,27 @@
+# ntfy server, deployed via the official image. The orca `ntfy.install` /
+# `ntfy.upgrade` lifecycle tools drive `docker compose -f compose.yml up -d`
+# against this file.
+#
+# Persistent state lives under ./state on the host so `ntfy.backup` /
+# `ntfy.restore` can tar it as a single tree (`--state-path ./state`).
+services:
+  ntfy:
+    image: binwiederhier/ntfy:latest
+    container_name: ntfy
+    command: serve
+    restart: unless-stopped
+    environment:
+      # Set to your public/base URL, e.g. https://ntfy.example.com
+      - NTFY_BASE_URL=http://127.0.0.1:80
+      - NTFY_CACHE_FILE=/var/cache/ntfy/cache.db
+      - NTFY_AUTH_FILE=/var/cache/ntfy/auth.db
+    ports:
+      - "80:80"
+    volumes:
+      - ./state/etc:/etc/ntfy
+      - ./state/cache:/var/cache/ntfy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:80/v1/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
