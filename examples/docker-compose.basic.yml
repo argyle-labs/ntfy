@@ -1,0 +1,15 @@
+# Minimal self-hosted ntfy: anonymous publish/subscribe, local cache db.
+services:
+  ntfy:
+    image: binwiederhier/ntfy:latest
+    container_name: ntfy
+    command: serve
+    restart: unless-stopped
+    environment:
+      - NTFY_BASE_URL=http://127.0.0.1:80
+      - NTFY_CACHE_FILE=/var/cache/ntfy/cache.db
+    ports:
+      - "80:80"
+    volumes:
+      - ./state/etc:/etc/ntfy
+      - ./state/cache:/var/cache/ntfy
