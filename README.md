@@ -1,6 +1,6 @@
 # ntfy
 
-An [orca](https://github.com/scottdkey/orca) plugin for [ntfy](https://ntfy.sh)
+An [orca](https://github.com/argyle-labs/orca) plugin for [ntfy](https://ntfy.sh)
 — the self-hostable, send-an-HTTP-POST push-notification service.
 
 This repo is two halves of one thing: the **orca plugin** (an ABI-stable
