@@ -33,8 +33,8 @@ use abi_stable::export_root_module;
 use abi_stable::prefix_type::PrefixTypeTrait;
 use abi_stable::std_types::{RErr, ROk, RResult, RStr, RString};
 use plugin_toolkit::abi::{BackendDef, PluginMod, PluginModRef, ToolDef};
-use plugin_toolkit::contract::ToolCtx;
 use plugin_toolkit::contract::config::{Config, Model, Ports};
+use plugin_toolkit::contract::ToolCtx;
 use plugin_toolkit::dispatch::{dispatch, tool_manifest_json};
 // The notification-domain types this plugin's backend seam crosses: `emit`
 // deserializes an `Event` and returns a `MessageRef` (via the `Backend` trait).
