@@ -1,6 +1,6 @@
 # ntfy
 
-An [orca](https://github.com/scottdkey/orca) plugin for [ntfy](https://ntfy.sh)
+An [orca](https://github.com/argyle-labs/orca) plugin for [ntfy](https://ntfy.sh)
 — the self-hostable, send-an-HTTP-POST push-notification service.
 
 This repo is two halves of one thing: the **orca plugin** (an ABI-stable
@@ -62,6 +62,22 @@ orca tool ntfy.create \
 
 Compose examples live in [`examples/`](examples): `docker-compose.basic.yml`
 (anonymous) and `docker-compose.auth.yml` (deny-by-default + token auth).
+
+## Podman
+
+ntfy has no special host requirements, so the same [`compose.yml`](compose.yml)
+runs under rootless Podman:
+
+```sh
+podman compose -f compose.yml up -d   # or: podman-compose -f compose.yml up -d
+```
+
+## Proxmox LXC
+
+There are no native-LXC assets for ntfy — it ships as the official upstream
+image. To run it on Proxmox, create an unprivileged Debian/Ubuntu LXC, install
+Docker or Podman inside it, and use the Docker / Compose or Podman path above
+(Docker-in-LXC). Persistent state stays under `./state` as documented above.
 
 ## Backup & Restore
 
