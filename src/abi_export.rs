@@ -142,6 +142,7 @@ extern "C" fn backends() -> RString {
             endpoint: row.base_url.clone(),
             capabilities: vec!["emit".to_string()],
             invoke_prefix: format!("{BACKEND_PREFIX}{}", row.name),
+            ..Default::default()
         })
         .collect();
     RString::from(sj::to_string(&defs).unwrap_or_else(|_| "[]".to_string()))
@@ -231,6 +232,13 @@ fn backend_for(name: &str) -> Result<NtfyBackend, String> {
     Ok(NtfyBackend::new(row.name, crate::Client::new(cfg)))
 }
 
+/// Declared SQL tables: none yet (this plugin owns no plugin-scoped tables).
+/// Empty declaration matches what orca synthesizes for a plugin predating the
+/// field; a stateful plugin would return a real SchemaDecl here.
+extern "C" fn schemas() -> RString {
+    RString::from(r#"{"namespace":"","tables":[]}"#)
+}
+
 #[export_root_module]
 fn export() -> PluginModRef {
     PluginMod {
@@ -241,6 +249,7 @@ fn export() -> PluginModRef {
         manifest,
         invoke,
         backends,
+        schemas,
     }
     .leak_into_prefix()
 }
