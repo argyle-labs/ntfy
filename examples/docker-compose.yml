@@ -1,0 +1,18 @@
+services:
+  ntfy:
+    image: binwiederhier/ntfy:latest
+    container_name: ntfy
+    restart: unless-stopped
+    command: serve
+    ports:
+      - "8080:80"
+    volumes:
+      - /opt/appdata/ntfy/cache:/var/cache/ntfy
+      - /opt/appdata/ntfy/etc:/etc/ntfy
+    environment:
+      - TZ=${TZ:-America/Denver}
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:80/v1/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3

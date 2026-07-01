@@ -554,6 +554,7 @@ dependencies = [
  "contract",
  "derive",
  "dispatch",
+ "futures-util",
  "inventory",
  "macro-runtime",
  "notifications",
@@ -773,6 +774,7 @@ dependencies = [
  "inventory",
  "macro-runtime",
  "moka",
+ "plugin-abi",
  "reqwest",
  "rusqlite",
  "schemars",
@@ -802,6 +804,19 @@ name = "deadpool-runtime"
 version = "0.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "092966b41edc516079bdf31ec78a2e0588d1d0c08f78b91d8307215928642b2b"
+
+[[package]]
+name = "deploy-target"
+version = "0.0.8-rc.9"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "schemars",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.18",
+ "tokio",
+]
 
 [[package]]
 name = "der"
@@ -2230,6 +2245,7 @@ dependencies = [
  "containers",
  "contract",
  "db",
+ "deploy-target",
  "derive",
  "dispatch",
  "futures-core",
@@ -2249,6 +2265,7 @@ dependencies = [
  "schemars",
  "serde",
  "serde_json",
+ "service",
  "sha2 0.11.0",
  "storage",
  "thiserror 2.0.18",
@@ -2946,6 +2963,19 @@ dependencies = [
  "ryu",
  "serde",
  "unsafe-libyaml",
+]
+
+[[package]]
+name = "service"
+version = "0.0.8-rc.9"
+dependencies = [
+ "anyhow",
+ "deploy-target",
+ "schemars",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.18",
+ "tokio",
 ]
 
 [[package]]
