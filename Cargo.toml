@@ -2,6 +2,10 @@
 name = "ntfy"
 version = "0.1.0"
 edition = "2021"
+description = "ntfy push notifications — orca notifications backend + self-host deploy lifecycle"
+
+[package.metadata.orca]
+category = "monitoring"
 
 [lib]
 name = "ntfy"
