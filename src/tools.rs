@@ -64,8 +64,7 @@ pub struct NtfySendOutput {
 /// smoke-testing a freshly-added endpoint.
 #[orca_tool(domain = "ntfy", verb = "send", role = "admin")]
 async fn ntfy_send(args: NtfySendArgs, _ctx: &ToolCtx) -> Result<NtfySendOutput> {
-    let conn = runtime::open_db()?;
-    let row = endpoint_db::get(&conn, &args.endpoint)?
+    let row = endpoint_db::get(&args.endpoint)?
         .with_context(|| format!("ntfy endpoint '{}' not registered", args.endpoint))?;
     let mut cfg = Config::new(row.base_url, row.topic);
     if let Some(t) = row.token {
