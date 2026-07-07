@@ -217,14 +217,7 @@ pub fn register_endpoint(row: &tools::EndpointRow) {
 /// a notifications backend. Non-fatal on db read errors so notifications
 /// outages don't gate daemon boot.
 pub fn bootstrap() {
-    let conn = match plugin_toolkit::db::open_default() {
-        Ok(c) => c,
-        Err(e) => {
-            tracing::warn!("ntfy bootstrap: db open failed: {e}");
-            return;
-        }
-    };
-    let rows = match tools::endpoint_db::list(&conn) {
+    let rows = match tools::endpoint_db::list() {
         Ok(rs) => rs,
         Err(e) => {
             tracing::warn!("ntfy bootstrap: list failed: {e}");

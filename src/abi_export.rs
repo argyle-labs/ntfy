@@ -151,10 +151,7 @@ extern "C" fn backends() -> RString {
 /// Enabled endpoint rows, or empty on any db error (plugin load must not fail
 /// because the notification table is momentarily unreadable).
 fn enabled_endpoints() -> Vec<crate::tools::EndpointRow> {
-    let Ok(conn) = plugin_toolkit::db::open_default() else {
-        return Vec::new();
-    };
-    match endpoint_db::list(&conn) {
+    match endpoint_db::list() {
         Ok(rows) => rows.into_iter().filter(|r| r.enabled).collect(),
         Err(_) => Vec::new(),
     }
@@ -221,8 +218,7 @@ fn invoke_backend(rest: &str, args_json: &str) -> RResult<RString, RString> {
 /// Build the [`NtfyBackend`] for endpoint `name` from its db row. Errors as a
 /// plain string (the FFI boundary carries no typed error).
 fn backend_for(name: &str) -> Result<NtfyBackend, String> {
-    let conn = plugin_toolkit::db::open_default().map_err(|e| format!("db open failed: {e}"))?;
-    let row = endpoint_db::get(&conn, name)
+    let row = endpoint_db::get(name)
         .map_err(|e| format!("load endpoint '{name}': {e}"))?
         .ok_or_else(|| format!("ntfy endpoint '{name}' not registered"))?;
     let mut cfg = crate::Config::new(row.base_url, row.topic);
@@ -239,6 +235,18 @@ extern "C" fn schemas() -> RString {
     RString::from(r#"{"namespace":"","tables":[]}"#)
 }
 
+/// Store core's DB channel so the through-core `endpoint_db` access works
+/// (the loader calls this at plugin load). Mirrors what `export_tool_plugin!`
+/// wires for tool-surface plugins.
+extern "C" fn set_host(db_op: plugin_toolkit::abi::HostDbOp) {
+    plugin_toolkit::runtime::set_host_db(db_op);
+}
+
+/// Store core's secrets service (same rationale as `set_host`).
+extern "C" fn set_secret_op(secret_op: plugin_toolkit::abi::HostSecretOp) {
+    plugin_toolkit::runtime::set_host_secret_op(secret_op);
+}
+
 #[export_root_module]
 fn export() -> PluginModRef {
     PluginMod {
@@ -250,6 +258,8 @@ fn export() -> PluginModRef {
         invoke,
         backends,
         schemas,
+        set_host,
+        set_secret_op,
     }
     .leak_into_prefix()
 }
