@@ -17,10 +17,9 @@
 #![allow(clippy::disallowed_types)]
 
 use std::path::Path;
-use std::process::Output;
 
 use plugin_toolkit::prelude::*;
-use plugin_toolkit::tokio::process::Command;
+use plugin_toolkit::process::{Command, Output};
 
 /// Release channel for `ntfy.upgrade`. Maps to an image tag on
 /// `binwiederhier/ntfy`.
@@ -57,14 +56,19 @@ impl Channel {
 /// Run a command, capturing output, and map a non-zero exit to an error that
 /// carries stderr — the lifecycle tools surface the runtime's own message
 /// rather than a bare exit code.
-async fn run(cmd: &mut Command) -> Result<Output> {
+async fn run(cmd: Command) -> Result<Output> {
     let output = cmd
         .output()
         .await
         .with_context(|| "failed to spawn command".to_string())?;
-    if !output.status.success() {
+    if !output.status.success {
         let stderr = String::from_utf8_lossy(&output.stderr);
-        bail!("command failed ({}): {}", output.status, stderr.trim());
+        let code = output
+            .status
+            .code
+            .map(|c| c.to_string())
+            .unwrap_or_else(|| "signal".to_string());
+        bail!("command failed (exit {}): {}", code, stderr.trim());
     }
     Ok(output)
 }
@@ -326,12 +330,10 @@ async fn restore_state(args: NtfyRestoreArgs) -> Result<NtfyRestoreOutput> {
     })
 }
 
-/// UTC timestamp `YYYYMMDD-HHMMSS` for archive names. chrono is reached through
-/// the toolkit re-export so the plugin carries no direct chrono dep.
+/// UTC timestamp `YYYYMMDD-HHMMSS` for archive names. Wall-clock time is reached
+/// through the toolkit's `time` seam so the plugin carries no direct chrono dep.
 fn now_stamp() -> String {
-    plugin_toolkit::chrono::Utc::now()
-        .format("%Y%m%d-%H%M%S")
-        .to_string()
+    plugin_toolkit::time::now().compact()
 }
 
 #[cfg(test)]

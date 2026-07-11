@@ -22,7 +22,6 @@
 //! exactly as the toolkit `abi` contract specifies.
 
 use std::sync::Arc;
-use std::sync::OnceLock;
 
 // The `#[export_root_module]` attribute expands to bare `::abi_stable` paths in
 // this crate's root, so `abi_stable` must be a direct dependency — it is a
@@ -41,7 +40,6 @@ use plugin_toolkit::dispatch::{dispatch, tool_manifest_json};
 use plugin_toolkit::notify::{Backend, Event};
 // The JSON dispatch payload type, named once here at the designated opaque seam.
 use plugin_toolkit::serde_json as sj;
-use plugin_toolkit::tokio::runtime::{Builder, Runtime};
 
 use crate::backend::NtfyBackend;
 use crate::tools::endpoint_db;
@@ -89,19 +87,6 @@ fn own_tools() -> Vec<ToolDef> {
 extern "C" fn manifest() -> RString {
     let defs = own_tools();
     RString::from(sj::to_string(&defs).unwrap_or_else(|_| "[]".to_string()))
-}
-
-/// Shared multi-thread runtime driving the async tool bodies behind the
-/// synchronous FFI `invoke`. Built once on first call and kept for the process
-/// lifetime so repeated invocations don't spin a fresh runtime each time.
-fn runtime() -> &'static Runtime {
-    static RT: OnceLock<Runtime> = OnceLock::new();
-    RT.get_or_init(|| {
-        Builder::new_multi_thread()
-            .enable_all()
-            .build()
-            .expect("build plugin tokio runtime")
-    })
 }
 
 /// A minimal `ToolCtx` for in-cdylib dispatch. The tool surface this plugin
@@ -174,7 +159,7 @@ extern "C" fn invoke(name: RStr<'_>, args_json: RStr<'_>) -> RResult<RString, RS
         Err(e) => return RErr(RString::from(format!("invalid args JSON: {e}"))),
     };
     let ctx = minimal_ctx();
-    let result = runtime().block_on(dispatch(n, args, &ctx));
+    let result = plugin_toolkit::time::block_on(dispatch(n, args, &ctx));
     match result {
         Ok(value) => match sj::to_string(&value) {
             Ok(s) => ROk(RString::from(s)),
@@ -206,7 +191,7 @@ fn invoke_backend(rest: &str, args_json: &str) -> RResult<RString, RString> {
         Ok(b) => b,
         Err(e) => return RErr(RString::from(e)),
     };
-    match runtime().block_on(backend.emit(&event)) {
+    match plugin_toolkit::time::block_on(backend.emit(&event)) {
         Ok(msg) => match sj::to_string(&msg) {
             Ok(s) => ROk(RString::from(s)),
             Err(e) => RErr(RString::from(format!("failed to encode result: {e}"))),

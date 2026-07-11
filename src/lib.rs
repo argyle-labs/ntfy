@@ -149,7 +149,7 @@ impl Client {
         let endpoint = format!(
             "{}/{}",
             self.cfg.base_url.trim_end_matches('/'),
-            plugin_toolkit::urlencoding::encode(topic)
+            plugin_toolkit::url::encode(topic)
         );
 
         let content_type = if msg.markdown {
