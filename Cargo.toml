@@ -10,34 +10,38 @@ category = "monitoring"
 [lib]
 name = "ntfy"
 path = "src/lib.rs"
-# `cdylib` is the orca plugin artifact orca's `plugin-loader` `dlopen`s;
-# `rlib` retains the in-crate `#[cfg(test)]` harness + lets the workspace use it
-# as a normal Rust lib.
-crate-type = ["cdylib", "rlib"]
+# Dynamic (subprocess) plugin: orca spawns the `[[bin]]` and drives it over the
+# orca socket, so no `cdylib` artifact is emitted. `rlib` retains the in-crate
+# `#[cfg(test)]` harness + lets the `[[bin]]` and the workspace use it as a
+# normal Rust lib.
+crate-type = ["rlib"]
+
+# The orca plugin entrypoint orca spawns and drives over the socket. `main.rs`
+# is the toolkit's `serve_tool_plugin!` hybrid arm (tool surface + notification
+# backends), replacing the retired cdylib `export_tool_plugin!` FFI export.
+[[bin]]
+name = "ntfy"
+path = "src/main.rs"
 
 # ntfy.sh-compatible push-notification backend plugin. Hand-written HTTP client
 # (no codegen) — POSTs to an ntfy topic over `plugin_toolkit::http`, exposes an
 # endpoint registry + a `notifications::Backend` impl.
 
 [dependencies]
-# The SOLE orca dependency. Every external crate the plugin needs — serde,
+# The SOLE dependency. Every external crate the plugin needs — serde,
 # serde_json, schemars, anyhow, async_trait, tracing, reqwest, urlencoding,
 # chrono, clap — is reached through `plugin_toolkit::*` / its prelude, or
 # injected by `#[plugin_struct]`/`#[orca_tool]`/`#[endpoint_resource]`. The
-# plugin source names no external crate except `abi_stable` below.
+# dynamic (subprocess) plugin names no external crate at all: retiring the
+# cdylib dropped the lone `abi_stable` FFI dep, since `serve_tool_plugin!`
+# reaches orca over the socket rather than across a `#[export_root_module]`
+# ABI boundary.
 #
 # Pinned to orca `main` (the
 # `urlencoding` re-export + the endpoint_resource/notifications domains). Until
 # that rc is cut, the committed `[patch]` in `.cargo/config.toml` resolves this
 # to the local in-tree toolkit at ../orca.
 plugin-toolkit = { git = "https://github.com/argyle-labs/orca", branch = "main" }
-
-# The ONE genuine non-orca dep: `#[export_root_module]` expands to bare
-# `::abi_stable` paths in this crate's root (the cdylib FFI boundary the loader
-# dlopens), so it can't route through the toolkit. Pinned to the orca workspace
-# version (0.11) so the layout hash baked into the cdylib matches what orca's
-# plugin-loader checks at load time.
-abi_stable = "0.11"
 
 [dev-dependencies]
 # Dev-only: the in-crate tests reach serde_json/json! and a mock HTTP server
