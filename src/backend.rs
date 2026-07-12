@@ -42,7 +42,7 @@ fn class_emoji(c: EventClass) -> &'static str {
     }
 }
 
-#[async_trait]
+#[orca_async]
 impl Backend for NtfyBackend {
     fn name(&self) -> &str {
         &self.name
