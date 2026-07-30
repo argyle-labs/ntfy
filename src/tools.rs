@@ -38,7 +38,7 @@ pub struct NtfyEndpoint {
 // ntfy.send — raw send via a registered endpoint
 // ═══════════════════════════════════════════════════════════════════════════
 
-#[plugin_struct(args)]
+#[orca_struct(args)]
 #[serde(rename_all = "camelCase")]
 pub struct NtfySendArgs {
     /// Registered endpoint name (see `ntfy.list`).
@@ -52,7 +52,7 @@ pub struct NtfySendArgs {
     pub title: Option<String>,
 }
 
-#[plugin_struct]
+#[orca_struct]
 #[serde(rename_all = "camelCase")]
 pub struct NtfySendOutput {
     pub status: u16,

@@ -89,7 +89,7 @@ pub struct Message<'a> {
 }
 
 /// ntfy priority levels. Wire format is the lowercase name.
-#[plugin_struct]
+#[orca_struct]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
 pub enum Priority {
@@ -112,7 +112,7 @@ impl Priority {
     }
 }
 
-#[plugin_struct]
+#[orca_struct]
 #[derive(Debug, Clone)]
 pub struct SendResult {
     pub status: u16,
