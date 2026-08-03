@@ -46,7 +46,10 @@ orca service.configure ntfy   # apply config via the upstream API
 
 ## Layout
 
-- `src/` — the plugin (pure Rust): the `ServiceBackend` descriptor + `configure` / `status`.
+- `src/backend.rs` — the notifications backend: renders/deploys the compose stack and reports typed `status` diagnostics.
+- `src/lifecycle.rs` — install / upgrade / backup / restore lifecycle for the ntfy container and its `./state` tree.
+- `src/tools.rs` — the plugin's tool surface for registering ntfy endpoints and sending raw messages through them.
+- `src/lib.rs` / `src/main.rs` — plugin registration and out-of-process entrypoint.
 - `compose.yml` — standalone deployment.
 - `scripts/` — provisioning / lifecycle helpers.
 - `assets/` — plugin icon.
