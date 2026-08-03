@@ -2,12 +2,15 @@
 
 Push notification server — send notifications to phones and desktops via HTTP.
 
-**Status:** running — Docker on `<ip>:8080`
+**Status:** running — Docker on `<ip>:80`
 
 - **Host**: `<host>` (`<ip>`)
-- **Port**: 8080
-- **Public URL**: `ntfy.<domain>` (fronted by a reverse proxy such as Caddy)
+- **Port**: 80 (as mapped in [`compose.yml`](../compose.yml))
+- **Public URL**: front with a reverse proxy (e.g. Caddy) for TLS
 
 ## Notes
 
-Used by other services (backups, monitoring, automations) to publish push notifications to subscribed topics. Fronted by a reverse proxy (e.g. Caddy) for TLS at `ntfy.<domain>`.
+Publishes push notifications to subscribed topics over HTTP — useful for wiring
+up backup jobs, monitoring, and automations to send alerts. Set `NTFY_BASE_URL`
+in `compose.yml` to your public/base URL, and put a reverse proxy in front for
+TLS if exposing it beyond the host.
