@@ -41,12 +41,12 @@ path = "src/main.rs"
 # `urlencoding` re-export + the endpoint_resource/notifications domains). Until
 # that rc is cut, the committed `[patch]` in `.cargo/config.toml` resolves this
 # to the local in-tree toolkit at ../orca.
-plugin-toolkit = { git = "https://github.com/argyle-labs/orca", branch = "main" }
+plugin-toolkit = { git = "https://github.com/argyle-labs/orca", tag = "v0.1.7-rc.1" }
 
 [dev-dependencies]
 # Dev-only: the in-crate tests reach serde_json/json! and a mock HTTP server
 # through the toolkit + wiremock. Not runtime deps.
-plugin-toolkit = { git = "https://github.com/argyle-labs/orca", branch = "main" }
+plugin-toolkit = { git = "https://github.com/argyle-labs/orca", tag = "v0.1.7-rc.1" }
 tokio    = { version = "1", features = ["macros", "rt-multi-thread"] }
 wiremock = "0.6"
 tempfile = "3"
