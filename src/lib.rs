@@ -228,6 +228,49 @@ pub fn bootstrap() {
     }
 }
 
+/// Enabled endpoint rows, or empty on any db error (the plugin must not fail to
+/// advertise because the notification table is momentarily unreadable).
+fn enabled_endpoints() -> Vec<tools::EndpointRow> {
+    match tools::endpoint_db::list() {
+        Ok(rows) => rows.into_iter().filter(|r| r.enabled).collect(),
+        Err(_) => Vec::new(),
+    }
+}
+
+/// Build the [`NtfyBackend`] for endpoint `name` from its db row, or `None` on
+/// any db error or a missing/unregistered endpoint.
+fn backend_for(name: &str) -> Option<NtfyBackend> {
+    let row = tools::endpoint_db::get(name).ok()??;
+    let mut cfg = Config::new(row.base_url, row.topic);
+    if let Some(t) = row.token {
+        cfg = cfg.with_token(t);
+    }
+    Some(NtfyBackend::new(row.name, Client::new(cfg)))
+}
+
+/// Typed `notify` facet for the [`Plugin`](plugin_toolkit::plugin::Plugin)
+/// builder: advertises one notification endpoint per enabled db row and resolves
+/// each to a typed [`NtfyBackend`]. Replaces the hand-rolled `backends()` /
+/// `backend_dispatch` FFI seam — the builder emits all wire dispatch, the `emit`
+/// contract stays typed end to end.
+pub struct NtfyProvider;
+
+impl plugin_toolkit::notify::NotifyProvider for NtfyProvider {
+    fn endpoints(&self) -> Vec<plugin_toolkit::notify::NotifyEndpoint> {
+        enabled_endpoints()
+            .into_iter()
+            .map(|row| plugin_toolkit::notify::NotifyEndpoint {
+                name: row.name,
+                base_url: row.base_url,
+            })
+            .collect()
+    }
+
+    fn backend(&self, endpoint: &str) -> Option<Box<dyn plugin_toolkit::notify::Backend>> {
+        backend_for(endpoint).map(|b| Box::new(b) as Box<dyn plugin_toolkit::notify::Backend>)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
