@@ -14,10 +14,9 @@ plugin_toolkit::instrument::bootstrap!();
 use plugin_toolkit::plugin::Plugin;
 
 // Force-link the `ntfy.` #[orca_tool] surface (a separate module from the
-// provider referenced below) so its inventory isn't dead-stripped at link time.
-// CRUD/send live in `tools`, deploy lifecycle in `lifecycle`.
-use ntfy::lifecycle as _;
-use ntfy::tools as _;
+// provider referenced below) so its inventory isn't dead-stripped at link time
+// (crate-level ref; a submodule `use` trips unused-import under -D warnings).
+use ntfy as _;
 
 fn main() -> plugin_toolkit::anyhow::Result<()> {
     Plugin::named("ntfy")
