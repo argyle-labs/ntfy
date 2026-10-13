@@ -11,6 +11,7 @@
 //!
 //! Composes with `utils::http` for transport so HTTP bug fixes propagate.
 
+pub mod archive;
 pub mod backend;
 pub mod lifecycle;
 pub mod tools;

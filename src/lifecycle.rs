@@ -231,6 +231,8 @@ fn default_state_path() -> String {
 pub struct NtfyBackupOutput {
     /// Absolute path of the archive written.
     pub archive: String,
+    /// Hex SHA-256 of the archive, also written to its `.sha256` sidecar.
+    pub sha256: String,
 }
 
 /// **Back up the ntfy server state** (config + message db) to a `.tar.gz` in
@@ -263,7 +265,8 @@ async fn backup_state(args: &NtfyBackupArgs) -> Result<NtfyBackupOutput> {
         .arg("."))
     .await?;
 
-    Ok(NtfyBackupOutput { archive })
+    let sha256 = crate::archive::write_sidecar(&archive)?;
+    Ok(NtfyBackupOutput { archive, sha256 })
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -300,12 +303,14 @@ pub struct NtfyRestoreArgs {
 pub struct NtfyRestoreOutput {
     /// True when extraction completed.
     pub restored: bool,
+    /// Hex SHA-256 the archive was verified against.
+    pub verified_sha256: String,
     /// Where the state was restored to.
     pub state_path: String,
 }
 
 /// **Restore the ntfy server state** from a `.tar.gz` produced by
-/// `ntfy.backup`. Stop the container before restoring; this tool only extracts
+/// `ntfy.backup`, after verifying it against its `.sha256` sidecar. Stop the container before restoring; this tool only extracts
 /// the archive over the state directory.
 #[orca_tool(domain = "ntfy", verb = "restore")]
 async fn ntfy_restore(args: NtfyRestoreArgs, _ctx: &ToolCtx) -> Result<NtfyRestoreOutput> {
@@ -317,15 +322,11 @@ async fn restore_state(args: NtfyRestoreArgs) -> Result<NtfyRestoreOutput> {
     if !Path::new(&args.from).is_file() {
         bail!("backup tarball '{}' not found", args.from);
     }
-    run(Command::new("mkdir").arg("-p").arg(&args.state_path)).await?;
-    run(Command::new("tar")
-        .arg("-xzf")
-        .arg(&args.from)
-        .arg("-C")
-        .arg(&args.state_path))
-    .await?;
+    let verified = crate::archive::verify(&args.from)?;
+    crate::archive::extract(&verified, &args.state_path).await?;
     Ok(NtfyRestoreOutput {
         restored: true,
+        verified_sha256: verified.sha256.clone(),
         state_path: args.state_path,
     })
 }
