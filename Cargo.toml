@@ -41,12 +41,11 @@ path = "src/main.rs"
 # `urlencoding` re-export + the endpoint_resource/notifications domains). Until
 # that rc is cut, the committed `[patch]` in `.cargo/config.toml` resolves this
 # to the local in-tree toolkit at ../orca.
-plugin-toolkit = { git = "https://github.com/argyle-labs/orca", branch = "main", package = "orca-plugin-toolkit" }
+plugin-toolkit = { git = "https://github.com/argyle-labs/orca", branch = "main", package = "orca-plugin-toolkit", default-features = false, features = ["tools", "db", "http", "notify"] }
 
 [dev-dependencies]
 # Dev-only: the in-crate tests reach serde_json/json! and a mock HTTP server
 # through the toolkit + wiremock. Not runtime deps.
-plugin-toolkit = { git = "https://github.com/argyle-labs/orca", branch = "main", package = "orca-plugin-toolkit" }
 tokio    = { version = "1", features = ["macros", "rt-multi-thread"] }
 wiremock = "0.6"
 tempfile = "3"
@@ -56,3 +55,10 @@ tempfile = "3"
 # too — the plugin must stay portable back into the orca workspace.
 [lints.clippy]
 let_underscore_must_use = "deny"
+
+[profile.release]
+opt-level = "z"
+lto = "fat"
+codegen-units = 1
+strip = true
+panic = "abort"
