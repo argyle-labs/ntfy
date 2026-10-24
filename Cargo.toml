@@ -41,7 +41,7 @@ path = "src/main.rs"
 # `urlencoding` re-export + the endpoint_resource/notifications domains). Until
 # that rc is cut, the committed `[patch]` in `.cargo/config.toml` resolves this
 # to the local in-tree toolkit at ../orca.
-plugin-toolkit = { git = "https://github.com/argyle-labs/orca", branch = "main", package = "orca-plugin-toolkit", default-features = false, features = ["tools", "db", "http", "notify"] }
+plugin-toolkit = { version = "=0.2.1-rc.47", registry = "gitea", package = "orca-plugin-toolkit", default-features = false, features = ["tools", "db", "http", "notify"] }
 
 [dev-dependencies]
 # Dev-only: the in-crate tests reach serde_json/json! and a mock HTTP server
