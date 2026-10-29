@@ -21,6 +21,7 @@ use crate::backend::NtfyBackend;
 
 use plugin_toolkit::http::{Client as HttpClient, HttpError};
 use plugin_toolkit::prelude::*;
+use plugin_toolkit::secrets;
 
 /// Stable connection config. Cheap to clone (`base` + `topic` + optional
 /// bearer token).
@@ -201,12 +202,36 @@ impl Client {
 
 // ── notifications wiring ───────────────────────────────────────────────────
 
+/// `endpoint_db::get`/`list` never populate `#[secret]` fields (so
+/// list/detail can't leak the token) — read the real value from the secrets
+/// store under the same `scoped_name` key create/update wrote it to. `token`
+/// is genuinely optional (a public topic needs none), so a never-registered
+/// secret silently means "send without a token" — but a resolution *error*
+/// (store unreachable, corrupt value) must not collapse into that same
+/// silence, or an authenticated endpoint quietly starts sending unauthenticated.
+pub(crate) fn resolve_stored_token(name: &str) -> Option<String> {
+    let key = match secrets::scoped_name("ntfy", name, "token") {
+        Ok(k) => k,
+        Err(e) => {
+            tracing::warn!("ntfy '{name}': invalid secret key, sending unauthenticated: {e}");
+            return None;
+        }
+    };
+    match secrets::get(key.as_str()) {
+        Ok(v) => v.map(|s| s.expose_secret().clone()),
+        Err(e) => {
+            tracing::warn!("ntfy '{name}': token lookup failed, sending unauthenticated: {e}");
+            None
+        }
+    }
+}
+
 /// Build an [`NtfyBackend`] from a db row and register it with the global
 /// `notifications` dispatcher. Used at daemon startup via [`bootstrap`].
 pub fn register_endpoint(row: &tools::EndpointRow) {
     let mut cfg = Config::new(row.base_url.clone(), row.topic.clone());
-    if let Some(t) = &row.token {
-        cfg = cfg.with_token(t.clone());
+    if let Some(t) = resolve_stored_token(&row.name) {
+        cfg = cfg.with_token(t);
     }
     let backend = NtfyBackend::new(row.name.clone(), Client::new(cfg));
     plugin_toolkit::notify::register_backend(Arc::new(backend));
@@ -242,7 +267,7 @@ fn enabled_endpoints() -> Vec<tools::EndpointRow> {
 fn backend_for(name: &str) -> Option<NtfyBackend> {
     let row = tools::endpoint_db::get(name).ok()??;
     let mut cfg = Config::new(row.base_url, row.topic);
-    if let Some(t) = row.token {
+    if let Some(t) = resolve_stored_token(&row.name) {
         cfg = cfg.with_token(t);
     }
     Some(NtfyBackend::new(row.name, Client::new(cfg)))
