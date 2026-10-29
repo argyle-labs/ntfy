@@ -18,7 +18,7 @@
 
 use plugin_toolkit::prelude::*;
 
-use crate::{Client, Config, Message};
+use crate::{resolve_stored_token, Client, Config, Message};
 
 // ═══════════════════════════════════════════════════════════════════════════
 // ntfy.{list,detail,create,update,delete} — endpoint registry CRUD.
@@ -67,7 +67,7 @@ async fn ntfy_send(args: NtfySendArgs, _ctx: &ToolCtx) -> Result<NtfySendOutput>
     let row = endpoint_db::get(&args.endpoint)?
         .with_context(|| format!("ntfy endpoint '{}' not registered", args.endpoint))?;
     let mut cfg = Config::new(row.base_url, row.topic);
-    if let Some(t) = row.token {
+    if let Some(t) = resolve_stored_token(&args.endpoint) {
         cfg = cfg.with_token(t);
     }
     let client = Client::new(cfg);
