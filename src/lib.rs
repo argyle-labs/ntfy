@@ -205,14 +205,25 @@ impl Client {
 /// `endpoint_db::get`/`list` never populate `#[secret]` fields (so
 /// list/detail can't leak the token) — read the real value from the secrets
 /// store under the same `scoped_name` key create/update wrote it to. `token`
-/// is genuinely optional (a public topic needs none), so a missing secret or
-/// a resolution error both just mean "send without a token".
+/// is genuinely optional (a public topic needs none), so a never-registered
+/// secret silently means "send without a token" — but a resolution *error*
+/// (store unreachable, corrupt value) must not collapse into that same
+/// silence, or an authenticated endpoint quietly starts sending unauthenticated.
 pub(crate) fn resolve_stored_token(name: &str) -> Option<String> {
-    let key = secrets::scoped_name("ntfy", name, "token").ok()?;
-    secrets::get(key.as_str())
-        .ok()
-        .flatten()
-        .map(|s| s.expose_secret().clone())
+    let key = match secrets::scoped_name("ntfy", name, "token") {
+        Ok(k) => k,
+        Err(e) => {
+            tracing::warn!("ntfy '{name}': invalid secret key, sending unauthenticated: {e}");
+            return None;
+        }
+    };
+    match secrets::get(key.as_str()) {
+        Ok(v) => v.map(|s| s.expose_secret().clone()),
+        Err(e) => {
+            tracing::warn!("ntfy '{name}': token lookup failed, sending unauthenticated: {e}");
+            None
+        }
+    }
 }
 
 /// Build an [`NtfyBackend`] from a db row and register it with the global
