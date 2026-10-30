@@ -202,13 +202,6 @@ impl Client {
 
 // ── notifications wiring ───────────────────────────────────────────────────
 
-/// `endpoint_db::get`/`list` never populate `#[secret]` fields (so
-/// list/detail can't leak the token) — read the real value from the secrets
-/// store under the same `scoped_name` key create/update wrote it to. `token`
-/// is genuinely optional (a public topic needs none), so a never-registered
-/// secret silently means "send without a token" — but a resolution *error*
-/// (store unreachable, corrupt value) must not collapse into that same
-/// silence, or an authenticated endpoint quietly starts sending unauthenticated.
 pub(crate) fn resolve_stored_token(name: &str) -> Option<String> {
     let key = match secrets::scoped_name("ntfy", name, "token") {
         Ok(k) => k,
