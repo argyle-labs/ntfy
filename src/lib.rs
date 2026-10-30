@@ -2,6 +2,8 @@
 //! registry. The plugin owns:
 //!   - the [`Client`] + [`Message`] HTTP primitives,
 //!   - a [`backend::NtfyBackend`] that implements `notifications::Backend`,
+//!   - a [`NtfyServiceBackend`] that implements `ServiceBackend`, for
+//!     deploy/backup/restore of the ntfy server itself,
 //!   - `ntfy.{add,list,delete,send}` `#[orca_tool]` CRUD surface,
 //!   - a [`bootstrap`] entry point that loads `db::ntfy` rows and registers
 //!     each enabled endpoint with the `notifications` dispatcher.
@@ -22,6 +24,81 @@ use crate::backend::NtfyBackend;
 use plugin_toolkit::http::{Client as HttpClient, HttpError};
 use plugin_toolkit::prelude::*;
 use plugin_toolkit::secrets;
+use plugin_toolkit::service::{
+    BoxFuture, Routes, Runtime, ServiceBackend, ServiceCapability, ServiceError, ServiceStatus,
+    WorkloadSpec,
+};
+
+/// ntfy's own app backend — deploy/backup/restore of the ntfy server itself.
+/// Distinct from [`backend::NtfyBackend`], which implements
+/// `notifications::Backend` for sending push messages through a configured
+/// endpoint.
+#[derive(Debug, Clone)]
+pub struct NtfyServiceBackend {
+    provider: &'static str,
+}
+
+impl NtfyServiceBackend {
+    pub fn new(provider: &'static str) -> Self {
+        Self { provider }
+    }
+}
+
+impl ServiceBackend for NtfyServiceBackend {
+    fn provider(&self) -> &str {
+        self.provider
+    }
+
+    fn runtimes(&self) -> Vec<Runtime> {
+        vec![Runtime::Docker, Runtime::Podman, Runtime::Lxc, Runtime::Vm]
+    }
+
+    fn capabilities(&self) -> Vec<ServiceCapability> {
+        vec![
+            ServiceCapability::Deploy,
+            ServiceCapability::Backup,
+            ServiceCapability::Restore,
+            ServiceCapability::Configure,
+            ServiceCapability::Status,
+        ]
+    }
+
+    fn default_port(&self) -> u16 {
+        80
+    }
+
+    /// ntfy's config/auth/topic state. `/var/cache/ntfy` is pure message
+    /// cache, not backup state.
+    fn data_paths(&self) -> Vec<String> {
+        vec!["/etc/ntfy".to_string()]
+    }
+
+    fn workload_spec<'a>(
+        &'a self,
+        _runtime: Runtime,
+        _instance: &'a str,
+        _routes: &'a Routes,
+    ) -> BoxFuture<'a, Result<WorkloadSpec, ServiceError>> {
+        Box::pin(async move { Err(ServiceError::unimplemented("ntfy.workload_spec")) })
+    }
+
+    fn configure<'a>(
+        &'a self,
+        _instance: &'a str,
+        _routes: &'a Routes,
+        _config: &'a str,
+    ) -> BoxFuture<'a, Result<(), ServiceError>> {
+        Box::pin(async move { Err(ServiceError::unimplemented("ntfy.configure")) })
+    }
+
+    fn status<'a>(
+        &'a self,
+        _instance: &'a str,
+        _routes: &'a Routes,
+    ) -> BoxFuture<'a, Result<ServiceStatus, ServiceError>> {
+        Box::pin(async move { Err(ServiceError::unimplemented("ntfy.status")) })
+    }
+}
 
 /// Stable connection config. Cheap to clone (`base` + `topic` + optional
 /// bearer token).
@@ -294,6 +371,13 @@ mod tests {
     use super::*;
     use wiremock::matchers::{header, method, path};
     use wiremock::{Mock, MockServer, ResponseTemplate};
+
+    #[test]
+    fn service_backend_declares_etc_ntfy_only() {
+        let b = NtfyServiceBackend::new("ntfy");
+        assert_eq!(b.provider(), "ntfy");
+        assert_eq!(b.data_paths(), vec!["/etc/ntfy".to_string()]);
+    }
 
     #[tokio::test]
     async fn send_posts_to_topic_with_headers() {
