@@ -1,13 +1,14 @@
 //! Dynamic (subprocess) entrypoint for the ntfy plugin.
 //!
-//! ntfy is a HYBRID plugin: it exposes its own `ntfy.*` `#[orca_tool]` surface
-//! AND serves one notification endpoint per enabled db row. The unified
-//! [`Plugin`](plugin_toolkit::plugin::Plugin) builder advertises both facets
-//! from one binary — the `.tools(["ntfy."])` inventory plus the typed
-//! `.notify()` facet, which advertises one def per endpoint and routes
-//! `notify.__backend.<endpoint>.emit` to the resolved typed
-//! [`NtfyBackend`](ntfy::backend::NtfyBackend). The plugin hand-writes no
-//! op-string dispatch — the builder emits all wire glue.
+//! ntfy is a HYBRID plugin: it exposes its own `ntfy.*` `#[orca_tool]` surface,
+//! serves one notification endpoint per enabled db row, AND deploys/backs up
+//! the ntfy server itself as a `service` backend. The unified
+//! [`Plugin`](plugin_toolkit::plugin::Plugin) builder advertises all three
+//! facets from one binary — the `.tools(["ntfy."])` inventory, the
+//! `.service()` backend, plus the typed `.notify()` facet, which advertises
+//! one def per endpoint and routes `notify.__backend.<endpoint>.emit` to the
+//! resolved typed [`NtfyBackend`](ntfy::backend::NtfyBackend). The plugin
+//! hand-writes no op-string dispatch — the builder emits all wire glue.
 
 plugin_toolkit::instrument::bootstrap!();
 
@@ -22,6 +23,7 @@ fn main() -> plugin_toolkit::anyhow::Result<()> {
     Plugin::named("ntfy")
         .version(env!("CARGO_PKG_VERSION"))
         .tools(["ntfy."])
+        .service(ntfy::NtfyServiceBackend::new("ntfy"))
         .notify(ntfy::NtfyProvider)
         .serve()
 }
